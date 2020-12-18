@@ -1,4 +1,5 @@
 import datetime, hashlib, base64, traceback, os, re
+import pytz
 
 import poshc2.server.database.DB as DB
 from poshc2.Colours import Colours
@@ -11,8 +12,37 @@ from poshc2.server.PowerStatus import translate_power_status
 from poshc2.Utils import randomuri
 
 
+_tz_utc = pytz.timezone('UTC')
+
+epoch_as_filetime = 116444736000000000  # January 1, 1970 as MS file time
+file_time_to_msec = 10000
+file_time_to_sec = 10000000
+file_time_to_min = file_time_to_sec * 60
+file_time_to_hour = file_time_to_min * 60
+file_time_to_day = file_time_to_hour * 24
+
+
+def now_as_filetime(dt: datetime.datetime) -> int:
+    """ Return current datetime as FILETIME
+    """
+    if dt == None:
+        dt = datetime.datetime.utcnow()
+    return datetime_to_filetime(dt)
+
+def datetime_to_filetime(dt: datetime.datetime) -> int:
+    """ datetime -> FILETIME 으로 변환
+    Naive datetime 이거나 UTC 가 아닌 경우 utc 로 변환후
+    FILETIME 으로 변환한다.
+    """
+    if (dt.tzinfo is None) or (dt.tzinfo != _tz_utc):
+        dt = dt.replace(tzinfo=_tz_utc)
+    return int((dt.timestamp() * file_time_to_sec) + epoch_as_filetime)
+
+
+
 def newTaskOutput(uriPath, cookieVal, post_data, wsclient=False):
-    now = datetime.datetime.now()
+    now = datetime.datetime.utcnow()
+    now_as_filetime = now_as_filetime(now)
     all_implants = DB.get_implants_all()
     if not all_implants:
         print_bad("Received post request but no implants in database... has the project been cleaned but you're using the same URLs?")
@@ -62,9 +92,9 @@ def newTaskOutput(uriPath, cookieVal, post_data, wsclient=False):
                 return
             print(Colours.GREEN)
             if task_owner is not None:
-                print("Task %s (%s) returned against implant %s on host %s\\%s @ %s (%s)" % (taskIdStr, task_owner, implantID, Domain, User, Hostname, now.strftime("%Y-%m-%d %H:%M:%S")))
+                print("Task %s (%s) returned against implant %s on host %s\\%s @ %s (%s, FILETIME: %d)" % (taskIdStr, task_owner, implantID, Domain, User, Hostname, now.strftime("%Y-%m-%d %H:%M:%S"), now_as_filetime))
             else:
-                print("Task %s returned against implant %s on host %s\\%s @ %s (%s)" % (taskIdStr, implantID, Domain, User, Hostname, now.strftime("%Y-%m-%d %H:%M:%S")))
+                print("Task %s returned against implant %s on host %s\\%s @ %s (%s, FILETIME: %d)" % (taskIdStr, implantID, Domain, User, Hostname, now.strftime("%Y-%m-%d %H:%M:%S"), now_as_filetime))
             try:
                 outputParsed = re.sub(r'123456(.+?)654321', '', rawoutput)
                 outputParsed = outputParsed.rstrip()

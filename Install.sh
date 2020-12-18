@@ -72,7 +72,7 @@ if [[ ! -d "$POSH_DIR" ]]; then
     # Git cloning PoshC2
     echo -e "\n[+] Installing PoshC2 in \"$POSH_DIR\" for branch \"$GIT_BRANCH\"\n"
     mkdir -p `dirname $POSH_DIR`
-    git clone -b "$GIT_BRANCH" https://github.com/nettitude/PoshC2 "$POSH_DIR"
+    git clone -b "$GIT_BRANCH" https://github.com/kimtaehong/PoshC2 "$POSH_DIR"
 else
     pushd "$POSH_DIR" >/dev/null
     git fetch >/dev/null 2>&1
@@ -112,6 +112,7 @@ echo "[+] python3 -m pipenv --three install"
 echo ""
 python3 -m pip install --upgrade pip > /dev/null
 python3 -m pip install pandas pipenv > /dev/null
+python3 -m pip install pytz > /dev/null
 cd "$POSH_DIR"
 python3 -m pipenv --three install >/dev/null
 
